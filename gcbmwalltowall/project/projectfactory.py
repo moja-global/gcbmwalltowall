@@ -32,6 +32,7 @@ class ProjectFactory:
         "metadata_attributes",
         "transition_undisturbed",
         "proportion",
+        "transition_attributes",
     }
 
     def create(self, config):
@@ -225,14 +226,20 @@ class ProjectFactory:
             else:
                 transition_disturbed = None
                 if dist_config.get("age_after") is not None:
-                    transition_disturbed = Transition(
-                        dist_config["age_after"],
-                        dist_config.get("regen_delay", 0),
-                        {
+                    # Check for explicit transition attributes (list)
+                    transition_attrs = dist_config.get("transition_attributes")
+                    if transition_attrs is None:
+                        # Fallback to project-defined classifiers
+                        transition_attrs = {
                             c.name: dist_config[c.name]
                             for c in classifiers
                             if c.name in dist_config
-                        },
+                        }
+
+                    transition_disturbed = Transition(
+                        dist_config["age_after"],
+                        dist_config.get("regen_delay", 0),
+                        transition_attrs,
                     )
 
                 transition_undisturbed = None

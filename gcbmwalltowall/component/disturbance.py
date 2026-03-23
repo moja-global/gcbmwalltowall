@@ -154,7 +154,10 @@ class Disturbance(Tileable):
             # Transition is configured as classifier to layer attribute;
             # use the inverse to rename those attributes to match the
             # classifiers when tiling.
-            tiler_attributes.update({v: k for k, v in self.transition.classifiers.items()})
+            if isinstance(self.transition.classifiers, dict):
+                tiler_attributes.update({v: k for k, v in self.transition.classifiers.items()})
+            elif isinstance(self.transition.classifiers, list):
+                tiler_attributes.update({c: c for c in self.transition.classifiers if c in attribute_table})
 
         layer_filters = {}
         for filter_attr, filter_value in self.filters.items():
@@ -331,12 +334,17 @@ class Disturbance(Tileable):
         )
 
         if transition_config.classifiers:
-            if all(
-                (v in attribute_table for v in transition_config.classifiers.values())
-            ):
-                spatial_classifier_transition = list(
-                    transition_config.classifiers.keys()
-                )
+            if isinstance(transition_config.classifiers, dict):
+                if all(
+                    (v in attribute_table for v in transition_config.classifiers.values())
+                ):
+                    spatial_classifier_transition = list(
+                        transition_config.classifiers.keys()
+                    )
+            elif isinstance(transition_config.classifiers, list):
+                spatial_classifier_transition = [
+                    c for c in transition_config.classifiers if c in attribute_table
+                ]
 
         transition_rule = TransitionRule(
             Attribute(regen_delay) if regen_delay in attribute_table else regen_delay,

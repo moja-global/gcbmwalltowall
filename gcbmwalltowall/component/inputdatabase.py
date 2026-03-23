@@ -91,9 +91,10 @@ class InputDatabase:
                 },
             }
 
+        is_legacy = self._is_legacy_aidb()
         input_db_type = (
             ProjectType.LegacyGcbmClassicSpatial
-            if self.aidb_path.suffix == ".mdb"
+            if is_legacy
             else ProjectType.GcbmClassicSpatial
         )
 
@@ -101,9 +102,19 @@ class InputDatabase:
         input_db.save(input_db_config_path)
         input_db.create(str(output_path))
 
-    def get_disturbance_types(self):
+    def _is_legacy_aidb(self):
         with get_connection(self.aidb_path) as conn:
-            if self.aidb_path.suffix == ".mdb":
+            # Check for a table that exists in the classic AIDB but not the modern one
+            try:
+                conn.execute(text("SELECT 1 FROM tblCBMVersion"))
+                return True
+            except:
+                return False
+
+    def get_disturbance_types(self):
+        is_legacy = self._is_legacy_aidb()
+        with get_connection(self.aidb_path) as conn:
+            if is_legacy:
                 dist_types = {
                     row[0]
                     for row in conn.execute(
@@ -169,8 +180,9 @@ class InputDatabase:
         raise RuntimeError(f"Unable to find increment columns in {self.yield_path}")
 
     def _find_species_col(self):
+        is_legacy = self._is_legacy_aidb()
         with get_connection(self.aidb_path) as conn:
-            if self.aidb_path.suffix == ".mdb":
+            if is_legacy:
                 species_types = {
                     row[0].lower()
                     for row in conn.execute(
